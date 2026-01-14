@@ -4,6 +4,7 @@ class Member extends Sport {
     private int age;
     private double height;
 
+
     public Member(String name, String sportType) {
         super(name, sportType);
         this.surname = "Unknown";
@@ -20,6 +21,17 @@ class Member extends Sport {
 
     public void info(){
         System.out.println("Member: " + getName() +" " + surname +", Age: " + age +", Height: " + height +", Sport: " + getSportType());
+    }
+    public String getSurname() {
+        return surname;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public double getHeight() {
+        return height;
     }
     @Override
     public boolean equals(Object o) {

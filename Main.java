@@ -1,17 +1,22 @@
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Scanner;
-
+import java.util.*;
+import java.sql.*;
 
 public class Main {
+
+    static String url = "jdbc:postgresql://localhost:5432/sportdb";
+    static String user = "postgres";
+    static String password = "root";
+
     public static void main(String[] args) {
+
         Scanner input = new Scanner(System.in);
         ArrayList<Person> people = new ArrayList<>();
+
         System.out.println("Members number: ");
-        int n =  input.nextInt();
+        int n = input.nextInt();
         input.nextLine();
 
-        for(int i=0; i<n; i++){
+        for (int i = 0; i < n; i++) {
             System.out.println("\nMember " + (i + 1));
 
             System.out.print("Name: ");
@@ -26,57 +31,70 @@ public class Main {
             System.out.print("Height (meters): ");
             double height = Double.parseDouble(input.nextLine());
 
-
             System.out.print("Sport type: ");
             String sportType = input.nextLine();
 
-            Member member = new Member(name, surname, age, height, sportType);
-            people.add(member);
+            people.add(new Member(name, surname, age, height, sportType));
         }
 
+        // твоя логика ↓
         people.add(new SportClub("Volleyball Club", 60, "Aruzhan"));
         people.add(new SportClub("Basketball Club", 45, "Dias"));
-        System.out.println("\nALL OBJECTS ");
-        for(Person p : people){
+
+        for (Person p : people) {
             p.info();
         }
-        people.sort(Comparator.comparing(Person::getName));
 
-        System.out.println("\nSorted: ");
-        for(Person p : people){
-            p.info();
-        }
-        System.out.println("\nSPORT CLUBS WITH 50+ MEMBERS");
-        for (Person p : people) {
-            if (p instanceof SportClub club && club.getMembers() >= 50) {
-                club.info();
-            }
-        }
-        System.out.println("\nSEARCH MEMBERS BY SPORT: Volleyball");
-        for (Person p : people) {
-            if (p instanceof Member member &&
-                    member.getSportType().equalsIgnoreCase("Volleyball")) {
-                member.info();
-            }
-        }
-        System.out.println("\nEQUALS TEST");
-        Member m1 = new Member("Ali", "Khan", 18, 1.75, "Football");
-        Member m2 = new Member("Ali", "Khan", 18, 1.75, "Football");
+        // ✅ ДОБАВЛЕННЫЕ СТРОКИ
+        saveMembersToDB(people);
+        readMembersFromDB();
+    }
 
-        System.out.println(people.equals(people));
+    // ===== JDBC METHODS =====
 
-        System.out.println("\nCOMPARING ENTERED MEMBERS");
-        for (int i = 0; i < people.size(); i++) {
-            for (int j = i + 1; j < people.size(); j++) {
-                if (people.get(i).equals(people.get(j))) {
-                    System.out.println("Objects are equal:");
-                    System.out.println(people.get(i));
-                    System.out.println(people.get(j));
+    static void saveMembersToDB(ArrayList<Person> people) {
+        String sql = "INSERT INTO members(name, surname, age, height, sport_type) VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            for (Person p : people) {
+                if (p instanceof Member m) {
+                    ps.setString(1, m.getName());
+                    ps.setString(2, m.getSurname());
+                    ps.setInt(3, m.getAge());
+                    ps.setDouble(4, m.getHeight());
+                    ps.setString(5, m.getSportType());
+                    ps.executeUpdate();
                 }
             }
+
+            System.out.println("Members saved to database");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
+    static void readMembersFromDB() {
+        String sql = "SELECT * FROM members";
 
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
 
+            System.out.println("\nMEMBERS FROM DATABASE:");
+            while (rs.next()) {
+                System.out.println(
+                        rs.getInt("id") + ". " +
+                                rs.getString("name") + " " +
+                                rs.getString("surname") +
+                                " (" + rs.getString("sport_type") + ")"
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
